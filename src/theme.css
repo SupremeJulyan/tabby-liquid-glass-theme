@@ -36,8 +36,14 @@ body[data-liquid-glass-theme] app-root split-tab > .child:not(.minimized) {
 body[data-liquid-glass-theme] app-root .xterm,
 body[data-liquid-glass-theme] app-root .xterm-viewport,
 body[data-liquid-glass-theme] app-root .xterm-screen { background: transparent !important; }
-/* Tabby paints the terminal's inline background on the tab host and xterm canvas. */
-body[data-liquid-glass-theme] app-root .liquid-glass-terminal { background-color: transparent !important; }
+/* Without native window vibrancy, keep terminal output on the opaque system
+   color scheme surface so TUI panels derived from that color blend correctly. */
+body[data-liquid-glass-theme][data-liquid-glass-vibrancy="disabled"] app-root .liquid-glass-terminal {
+ background-color: rgb(var(--gg-bg-rgb)) !important;
+}
+body[data-liquid-glass-theme][data-liquid-glass-vibrancy="enabled"] app-root .liquid-glass-terminal {
+ background-color: transparent !important;
+}
 body[data-liquid-glass-theme] app-root split-tab > .child.focused { box-shadow: inset 0 0 0 1px rgba(181,204,255,.23); }
 body[data-liquid-glass-theme] app-root .arw-tree-host {
  background: var(--gg-surface) !important; border: 1px solid var(--gg-edge);

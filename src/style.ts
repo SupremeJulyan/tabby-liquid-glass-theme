@@ -25,10 +25,12 @@ export class GlassStyle {
         const rgb = match[1].match(/.{2}/g)!.map(part => Number.parseInt(part, 16)).join(',')
         this.element.textContent = `body[data-liquid-glass-theme]{--gg-radius:${value.radius}px;--gg-alpha:${value.opacity / 100};--gg-bg-rgb:${rgb};}\n${this.stylesheet}`
         this.document.body.setAttribute('data-liquid-glass-theme', '')
+        this.document.body.setAttribute('data-liquid-glass-vibrancy', value.windowVibrancy ? 'enabled' : 'disabled')
     }
     destroy (): void {
         this.element?.remove()
         this.element = undefined
         this.document.body.removeAttribute('data-liquid-glass-theme')
+        this.document.body.removeAttribute('data-liquid-glass-vibrancy')
     }
 }
