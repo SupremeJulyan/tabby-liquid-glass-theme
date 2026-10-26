@@ -39,7 +39,7 @@ class GlassService {
       <label><input type="checkbox" [(ngModel)]="value.windowVibrancy"> 启用窗口透明，透出桌面背景</label>
       <label>窗格圆角（px）<input class="form-control" type="number" min="0" max="24" [(ngModel)]="value.radius"></label>
       <label>背景不透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.opacity"></label>
-      <p><small>面板和终端底色跟随 Tabby 当前配色方案。不透明度控制玻璃表面的颜色浓度；透出桌面需要启用窗口透明。</small></p>
+      <p><small>关闭窗口透明时，主背景、侧栏、文件区和终端使用不透明的系统配色。开启窗口透明后，不透明度控制玻璃表面的颜色浓度。</small></p>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{saving ? '保存中…' : '保存'}}</button>
       <span class="save-status" role="status" aria-live="polite">{{status}}</span>`,
     styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}'],
