@@ -1,0 +1,117 @@
+/* Liquid Glass Theme — standalone Tabby appearance plugin. */
+body[data-liquid-glass-theme], body[data-liquid-glass-theme] app-root {
+ color-scheme: dark;
+ --gg-text: #e6e9f2; --gg-muted: #b2bacd; --gg-accent: #b5ccff;
+ --gg-surface: rgba(var(--gg-bg-rgb),var(--gg-alpha));
+ --gg-header: linear-gradient(145deg,rgba(220,230,255,.10),rgba(130,155,200,.025));
+ --gg-edge: rgba(220,230,255,.14); --gg-shine: inset 0 1px rgba(255,255,255,.10);
+ --theme-bg: #20232b; --theme-bg-more: #2a2e39; --theme-bg-more-2: #353b49;
+ --theme-bg-less: #1c1f26; --theme-bg-less-2: #191b22;
+ --theme-fg: var(--gg-text); --theme-fg-more: #c7cede; --theme-fg-more-2: var(--gg-muted);
+ --theme-fg-less: #f1f4fc; --theme-fg-less-2: #ffffff;
+ --bs-body-color: var(--gg-text); --bs-border-color: var(--gg-edge);
+}
+body[data-liquid-glass-theme] { background: transparent !important; }
+body[data-liquid-glass-theme] app-root {
+ background: linear-gradient(135deg,rgba(var(--gg-bg-rgb),var(--gg-alpha)),rgba(var(--gg-bg-rgb),var(--gg-alpha))) !important;
+ color: var(--gg-text); border-radius: 14px; overflow: hidden;
+ box-shadow: inset 0 0 0 1px var(--gg-edge);
+}
+body[data-liquid-glass-theme] app-root tab-body, body[data-liquid-glass-theme] app-root .content-tab-active { background: transparent !important; }
+body[data-liquid-glass-theme] app-root > .window > .main.content .tab-bar,
+body[data-liquid-glass-theme] app-root arw-tree .sidebar-header,
+body[data-liquid-glass-theme] app-root .arw-ai-header {
+ background: var(--gg-header) !important;
+ color: var(--gg-text) !important;
+ border-bottom: 1px solid var(--gg-edge) !important;
+ box-shadow: var(--gg-shine);
+}
+body[data-liquid-glass-theme] app-root > .window > .main.content .tab-bar .tabs tab-header {
+ margin: 4px 3px; border: 1px solid transparent; border-radius: 10px;
+ color: var(--gg-muted); background: transparent;
+ transition: background .15s ease,border-color .15s ease;
+}
+body[data-liquid-glass-theme] app-root > .window > .main.content .tab-bar .tabs tab-header:hover { background: rgba(220,230,255,.07) !important; }
+body[data-liquid-glass-theme] app-root > .window > .main.content .tab-bar .tabs tab-header.active {
+ background: linear-gradient(145deg,rgba(181,204,255,.19),rgba(181,204,255,.06)) !important;
+ color: #f1f4fc; border-color: rgba(181,204,255,.26); box-shadow: var(--gg-shine);
+}
+body[data-liquid-glass-theme] app-root tab-header .current-tab-indicator { height: 2px; background: var(--gg-accent) !important; }
+body[data-liquid-glass-theme] app-root split-tab > .child:not(.minimized) {
+ opacity: 1 !important; background: var(--gg-surface); border-radius: var(--gg-radius); overflow: hidden;
+ box-shadow: inset 0 0 0 1px rgba(220,230,255,.07);
+}
+body[data-liquid-glass-theme] app-root .xterm,
+body[data-liquid-glass-theme] app-root .xterm-viewport,
+body[data-liquid-glass-theme] app-root .xterm-screen { background: transparent !important; }
+body[data-liquid-glass-theme] app-root split-tab > .child.focused { box-shadow: inset 0 0 0 1px rgba(181,204,255,.23); }
+body[data-liquid-glass-theme] app-root .arw-tree-host {
+ background: var(--gg-surface) !important; border: 1px solid var(--gg-edge);
+ border-radius: var(--gg-radius); overflow: hidden; box-sizing: border-box; box-shadow: var(--gg-shine);
+}
+body[data-liquid-glass-theme] app-root arw-tree {
+ --arw-bg: transparent; --arw-border: var(--gg-edge); --arw-muted: var(--gg-muted);
+ --arw-accent: var(--gg-accent); --arw-hover: rgba(181,204,255,.09);
+ color: var(--gg-text); background: transparent !important; border-right: 0;
+}
+body[data-liquid-glass-theme] app-root .arw-ai-header > span { opacity: 1 !important; color: #c7cede; }
+body[data-liquid-glass-theme] app-root .arw-ai-header > button:not(:disabled) { opacity: .85; color: var(--gg-text) !important; border-radius: 6px; }
+body[data-liquid-glass-theme] app-root .arw-ai-header > button:not(:disabled):hover { opacity: 1; background: rgba(181,204,255,.10) !important; }
+body[data-liquid-glass-theme] app-root arw-tree :is(.workspace-footer,.current-directory) { background: transparent !important; }
+body[data-liquid-glass-theme] app-root arw-tree :is(.search-box,.view-tabs) { border-radius: 9px; background: rgba(220,230,255,.035); }
+body[data-liquid-glass-theme] app-root arw-tree :is(button,input,select,.file-row) { border-radius: 7px; }
+body[data-liquid-glass-theme] app-root arw-tree :is(.project-row.selected,.file-row.selected,.view-tabs button.selected) { border-radius: 7px; background: rgba(148,186,255,.14); }
+body[data-liquid-glass-theme] :is(.modal-content,.dropdown-menu,.popover) {
+ color: var(--gg-text); background: linear-gradient(145deg,rgba(48,53,66,.97),rgba(var(--gg-bg-rgb),var(--gg-alpha))) !important;
+ border: 1px solid var(--gg-edge); border-radius: 13px;
+ box-shadow: var(--gg-shine),0 16px 48px rgba(0,0,0,.3); backdrop-filter: blur(18px);
+}
+body[data-liquid-glass-theme] .dropdown-item { color: var(--gg-text); }
+body[data-liquid-glass-theme] .dropdown-item:hover { background: rgba(181,204,255,.12); }
+body[data-liquid-glass-theme] .dropdown-item:is(:disabled,.disabled) { color: #8992a8; background: transparent; }
+body[data-liquid-glass-theme] :is(.modal-header,.modal-footer) { border-color: var(--gg-edge); }
+body[data-liquid-glass-theme] :is(.form-control,.form-select,.custom-select) { color: var(--gg-text); background-color: rgba(var(--gg-bg-rgb),var(--gg-alpha)); border-color: var(--gg-edge); border-radius: 8px; }
+body[data-liquid-glass-theme] input::placeholder { color: var(--gg-muted); opacity: 1; }
+body[data-liquid-glass-theme] :is(button,input,select,textarea,a):focus-visible { outline: 2px solid var(--gg-accent); outline-offset: 2px; }
+body[data-liquid-glass-theme] app-root ::-webkit-scrollbar { width: 7px; height: 7px; }
+body[data-liquid-glass-theme] app-root ::-webkit-scrollbar-thumb { background: rgba(178,186,205,.3); border-radius: 8px; }
+body[data-liquid-glass-theme] app-root ::-webkit-scrollbar-thumb:hover { background: rgba(178,186,205,.5); }
+body[data-liquid-glass-theme] app-root ::-webkit-scrollbar-track { background: transparent; }
+@media(prefers-reduced-motion:reduce) { body[data-liquid-glass-theme] app-root > .window > .main.content .tab-bar .tabs tab-header { transition: none; } }
+@supports not (backdrop-filter:blur(1px)) { body[data-liquid-glass-theme] :is(.modal-content,.dropdown-menu,.popover) { background: #303542 !important; } }
+
+/* Tabby nests the main content inside .window. */
+body[data-liquid-glass-theme] app-root > .window > .main.content > .tab-bar {
+ background: var(--gg-header) !important;
+ border-bottom: 1px solid var(--gg-edge);
+ box-shadow: var(--gg-shine);
+}
+body[data-liquid-glass-theme] app-root > .window > .main.content > .tab-bar > .tabs tab-header {
+ border-radius: 10px !important;
+ border: 1px solid transparent;
+ background: transparent;
+ color: var(--gg-muted);
+ box-shadow: none;
+}
+body[data-liquid-glass-theme] app-root > .window > .main.content > .tab-bar > .tabs tab-header.active {
+ background: linear-gradient(145deg,rgba(181,204,255,.19),rgba(181,204,255,.06)) !important;
+ color: #f1f4fc;
+ border-color: rgba(181,204,255,.26);
+ box-shadow: var(--gg-shine),0 3px 10px rgba(0,0,0,.12);
+}
+body[data-liquid-glass-theme] app-root > .window > .main.content > .tab-bar > .tabs tab-header .index { color: var(--gg-muted); opacity: .8; }
+body[data-liquid-glass-theme] app-root > .window > .main.content > .tab-bar > .tabs tab-header .buttons button {
+ border-radius: 7px; color: var(--gg-text); background: transparent;
+}
+body[data-liquid-glass-theme] app-root > .window > .main.content > .tab-bar > .tabs tab-header .buttons button:hover {
+ background: rgba(181,204,255,.12) !important;
+}
+body[data-liquid-glass-theme] app-root .tab-bar .btn-tab-bar { border-radius: 8px; }
+
+/* Trim only the painted divider, leaving its resize hit area unchanged. */
+body[data-liquid-glass-theme] app-root split-tab > split-tab-spanner.h::after {
+ top: var(--gg-radius) !important; bottom: var(--gg-radius) !important; border-radius: 3px;
+}
+body[data-liquid-glass-theme] app-root split-tab > split-tab-spanner.v::after {
+ left: var(--gg-radius) !important; right: var(--gg-radius) !important; border-radius: 3px;
+}

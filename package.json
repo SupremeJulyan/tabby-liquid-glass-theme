@@ -1,0 +1,44 @@
+{
+  "name": "tabby-liquid-glass-theme",
+  "version": "0.1.0",
+  "description": "Configurable rounded liquid glass theme for Tabby",
+  "keywords": [
+    "tabby-plugin",
+    "theme",
+    "liquid-glass"
+  ],
+  "main": "dist/index.js",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "liquid-glass.yaml"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "@angular/core": "^15.2.0",
+    "@angular/common": "^15.2.0",
+    "@angular/forms": "^15.2.0",
+    "tabby-core": ">=1.0.231-nightly.0",
+    "tabby-settings": ">=1.0.231-nightly.0",
+    "rxjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "esbuild": "^0.25.0",
+    "@types/node": "^22.0.0",
+    "happy-dom": "^21.0.4",
+    "@angular/common": "15.2.10",
+    "@angular/core": "15.2.10",
+    "@angular/forms": "15.2.10",
+    "rxjs": "7.8.2",
+    "tabby-core": "1.0.231-nightly.0",
+    "tabby-settings": "1.0.231-nightly.0"
+  },
+  "author": "Julyan"
+}
