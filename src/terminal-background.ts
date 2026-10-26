@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core'
-import { ConfigService } from 'tabby-core'
+import { ConfigService, ThemesService } from 'tabby-core'
 import { BaseTerminalTabComponent, TerminalDecorator } from 'tabby-terminal'
-import { options } from './style'
-
 const KEY = 'liquidGlassTheme'
 type XtermLike = { options: { theme?: Record<string, unknown> } }
 type FrontendLike = {
@@ -15,7 +13,7 @@ type FrontendLike = {
 export class GlassTerminalDecorator extends TerminalDecorator {
     private configureOriginals = new WeakMap<BaseTerminalTabComponent<any>, (profile: unknown) => void>()
 
-    constructor (private config: ConfigService) { super() }
+    constructor (private config: ConfigService, private themes: ThemesService) { super() }
 
     attach (terminal: BaseTerminalTabComponent<any>): void {
         const frontend = terminal.frontend as FrontendLike | undefined
@@ -49,10 +47,14 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         const enabled = this.config.store?.[KEY]?.enabled === true
         terminal.element?.nativeElement?.classList.toggle('liquid-glass-terminal', enabled)
         if (!enabled || !frontend.xterm?.options.theme) return
-        const glass = options(this.config.store?.[KEY])
-        // Keep the official ANSI palette intact. The RGB portion of xterm's
-        // transparent background is also reported to TUIs such as Codex when
-        // they choose panel colors from the terminal's default background.
-        frontend.xterm.options.theme = { ...frontend.xterm.options.theme, background: `${glass.background}00` }
+        // The glass tint is a visual surface, not the terminal's color scheme.
+        // TUIs query xterm's default background and derive their own panel colors
+        // from it, so retain the active Tabby scheme's RGB while making the
+        // terminal canvas transparent. A profile-specific scheme takes priority.
+        const profileScheme = (terminal.profile as { terminalColorScheme?: { background?: string } }).terminalColorScheme
+        const activeScheme = this.themes._getActiveColorScheme() as { background?: string }
+        const background = profileScheme?.background ?? activeScheme?.background
+        if (!background || !/^#[0-9a-f]{6}$/i.test(background)) return
+        frontend.xterm.options.theme = { ...frontend.xterm.options.theme, background: `${background}00` }
     }
 }
