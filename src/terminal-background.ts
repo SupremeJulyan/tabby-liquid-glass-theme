@@ -48,6 +48,9 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         const enabled = this.config.store?.[KEY]?.enabled === true
         terminal.element?.nativeElement?.classList.toggle('liquid-glass-terminal', enabled)
         if (!enabled || !frontend.xterm?.options.theme) return
-        frontend.xterm.options.theme = { ...frontend.xterm.options.theme, background: '#00000000' }
+        // Many TUIs use ANSI black for panels and highlighted output. The glass
+        // surface should show through those cells just as it does the default
+        // xterm background, otherwise the profile palette leaves dark blocks.
+        frontend.xterm.options.theme = { ...frontend.xterm.options.theme, background: '#00000000', black: '#00000000' }
     }
 }
