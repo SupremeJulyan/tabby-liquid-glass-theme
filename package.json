@@ -26,6 +26,7 @@
     "@angular/forms": "^15.2.0",
     "tabby-core": ">=1.0.231-nightly.0",
     "tabby-settings": ">=1.0.231-nightly.0",
+    "tabby-terminal": ">=1.0.231-nightly.0",
     "rxjs": "^7.0.0"
   },
   "devDependencies": {
@@ -38,7 +39,8 @@
     "@angular/forms": "15.2.10",
     "rxjs": "7.8.2",
     "tabby-core": "1.0.231-nightly.0",
-    "tabby-settings": "1.0.231-nightly.0"
+    "tabby-settings": "1.0.231-nightly.0",
+    "tabby-terminal": "1.0.231-nightly.0"
   },
   "author": "Julyan"
 }

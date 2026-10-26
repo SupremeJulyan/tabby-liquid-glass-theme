@@ -2,9 +2,11 @@ import { Component, Injectable, NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { ConfigProvider, ConfigService } from 'tabby-core'
+import { TerminalDecorator } from 'tabby-terminal'
 import { SettingsTabProvider } from 'tabby-settings'
 import { Subscription } from 'rxjs'
 import { DEFAULTS, GlassStyle, options, type GlassOptions } from './style'
+import { GlassTerminalDecorator } from './terminal-background'
 const stylesheet: string = require('./theme.css')
 const KEY = 'liquidGlassTheme'
 
@@ -33,7 +35,7 @@ class GlassService {
       <label>窗格圆角（px）<input class="form-control" type="number" min="0" max="24" [(ngModel)]="value.radius"></label>
       <label>背景颜色<input class="form-control color-control" type="color" [(ngModel)]="value.background"></label>
       <label>背景不透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.opacity"></label>
-      <p><small>透出桌面需要启用窗口透明；不透明度控制主题面板的底色。Codex 自身绘制的输出背景不会被移除。</small></p>
+      <p><small>透出桌面需要启用窗口透明；不透明度控制主题面板和终端底色。</small></p>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{saving ? '保存中…' : '保存'}}</button>
       <span class="save-status" role="status" aria-live="polite">{{status}}</span>`,
     styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}.color-control{height:42px;padding:4px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}'],
@@ -79,7 +81,8 @@ class GlassSettingsProvider extends SettingsTabProvider {
 }
 @NgModule({
     imports: [CommonModule, FormsModule], declarations: [GlassSettings],
-    providers: [GlassService, { provide: ConfigProvider, useClass: GlassConfig, multi: true },
+    providers: [GlassService, { provide: TerminalDecorator, useClass: GlassTerminalDecorator, multi: true },
+        { provide: ConfigProvider, useClass: GlassConfig, multi: true },
         { provide: SettingsTabProvider, useClass: GlassSettingsProvider, multi: true }],
 })
 export default class GraphiteGlassModule {
