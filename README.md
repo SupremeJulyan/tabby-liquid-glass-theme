@@ -15,7 +15,7 @@ npm pack
 在 Tabby 的插件目录安装生成的 tarball：
 
 ```sh
-npm install --omit=dev --legacy-peer-deps /absolute/path/tabby-liquid-glass-theme-0.1.0.tgz
+npm install --omit=dev --legacy-peer-deps /absolute/path/tabby-liquid-glass-theme-0.1.10.tgz
 ```
 
 重启 Tabby，在 **Settings → Liquid Glass Theme** 开启样式。插件默认关闭；保存窗口透明选项时，会同步设置 Tabby 的 Vibrancy。
