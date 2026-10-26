@@ -5,10 +5,6 @@ body[data-liquid-glass-theme], body[data-liquid-glass-theme] app-root {
  --gg-surface: rgba(var(--gg-bg-rgb),var(--gg-alpha));
  --gg-header: linear-gradient(145deg,rgba(220,230,255,.10),rgba(130,155,200,.025));
  --gg-edge: rgba(220,230,255,.14); --gg-shine: inset 0 1px rgba(255,255,255,.10);
- --theme-bg: #20232b; --theme-bg-more: #2a2e39; --theme-bg-more-2: #353b49;
- --theme-bg-less: #1c1f26; --theme-bg-less-2: #191b22;
- --theme-fg: var(--gg-text); --theme-fg-more: #c7cede; --theme-fg-more-2: var(--gg-muted);
- --theme-fg-less: #f1f4fc; --theme-fg-less-2: #ffffff;
  --bs-body-color: var(--gg-text); --bs-border-color: var(--gg-edge);
 }
 body[data-liquid-glass-theme] { background: transparent !important; }
@@ -60,7 +56,7 @@ body[data-liquid-glass-theme] app-root arw-tree :is(.search-box,.view-tabs) { bo
 body[data-liquid-glass-theme] app-root arw-tree :is(button,input,select,.file-row) { border-radius: 7px; }
 body[data-liquid-glass-theme] app-root arw-tree :is(.project-row.selected,.file-row.selected,.view-tabs button.selected) { border-radius: 7px; background: rgba(148,186,255,.14); }
 body[data-liquid-glass-theme] :is(.modal-content,.dropdown-menu,.popover) {
- color: var(--gg-text); background: linear-gradient(145deg,rgba(48,53,66,.97),rgba(var(--gg-bg-rgb),var(--gg-alpha))) !important;
+ color: var(--gg-text); background: linear-gradient(145deg,rgba(var(--gg-bg-rgb),calc(var(--gg-alpha) * .92)),rgba(var(--gg-bg-rgb),var(--gg-alpha))) !important;
  border: 1px solid var(--gg-edge); border-radius: 13px;
  box-shadow: var(--gg-shine),0 16px 48px rgba(0,0,0,.3); backdrop-filter: blur(18px);
 }
@@ -76,7 +72,7 @@ body[data-liquid-glass-theme] app-root ::-webkit-scrollbar-thumb { background: r
 body[data-liquid-glass-theme] app-root ::-webkit-scrollbar-thumb:hover { background: rgba(178,186,205,.5); }
 body[data-liquid-glass-theme] app-root ::-webkit-scrollbar-track { background: transparent; }
 @media(prefers-reduced-motion:reduce) { body[data-liquid-glass-theme] app-root .tab-bar .tabs tab-header { transition: none; } }
-@supports not (backdrop-filter:blur(1px)) { body[data-liquid-glass-theme] :is(.modal-content,.dropdown-menu,.popover) { background: #303542 !important; } }
+@supports not (backdrop-filter:blur(1px)) { body[data-liquid-glass-theme] :is(.modal-content,.dropdown-menu,.popover) { background: var(--theme-bg-more, var(--theme-bg)) !important; } }
 
 /* Use one tab treatment for terminal, workspace and settings tabs. */
 body[data-liquid-glass-theme] app-root .tab-bar > .tabs tab-header {

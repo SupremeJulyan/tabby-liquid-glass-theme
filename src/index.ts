@@ -1,7 +1,7 @@
 import { Component, Injectable, NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { ConfigProvider, ConfigService } from 'tabby-core'
+import { ConfigProvider, ConfigService, ThemesService } from 'tabby-core'
 import { TerminalDecorator } from 'tabby-terminal'
 import { SettingsTabProvider } from 'tabby-settings'
 import { Subscription } from 'rxjs'
@@ -17,10 +17,15 @@ class GlassConfig extends ConfigProvider { defaults = { [KEY]: DEFAULTS } }
 class GlassService {
     private subscriptions = new Subscription()
     private style = new GlassStyle(document, stylesheet)
-    constructor (config: ConfigService) {
-        const refresh = (): void => this.style.update(config.store?.[KEY] ?? DEFAULTS)
+    constructor (config: ConfigService, themes: ThemesService) {
+        const refresh = (): void => {
+            const active = themes as unknown as { _getActiveColorScheme(): { background?: string } }
+            const background = active._getActiveColorScheme()?.background ?? ''
+            this.style.update(config.store?.[KEY] ?? DEFAULTS, background)
+        }
         this.subscriptions.add(config.ready$.subscribe(refresh))
         this.subscriptions.add(config.changed$.subscribe(refresh))
+        this.subscriptions.add(themes.themeChanged$.subscribe(refresh))
         refresh()
     }
     ngOnDestroy (): void { this.subscriptions.unsubscribe(); this.style.destroy() }
@@ -33,12 +38,11 @@ class GlassService {
       <label><input type="checkbox" [(ngModel)]="value.enabled"> 启用样式</label>
       <label><input type="checkbox" [(ngModel)]="value.windowVibrancy"> 启用窗口透明，透出桌面背景</label>
       <label>窗格圆角（px）<input class="form-control" type="number" min="0" max="24" [(ngModel)]="value.radius"></label>
-      <label>背景颜色<input class="form-control color-control" type="color" [(ngModel)]="value.background"></label>
       <label>背景不透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.opacity"></label>
-      <p><small>透出桌面需要启用窗口透明；不透明度控制主题面板和终端底色。</small></p>
+      <p><small>面板和终端底色跟随 Tabby 当前配色方案。不透明度控制玻璃表面的颜色浓度；透出桌面需要启用窗口透明。</small></p>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{saving ? '保存中…' : '保存'}}</button>
       <span class="save-status" role="status" aria-live="polite">{{status}}</span>`,
-    styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}.color-control{height:42px;padding:4px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}'],
+    styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}'],
 })
 class GlassSettings {
     value: GlassOptions
@@ -56,7 +60,7 @@ class GlassSettings {
             target.windowVibrancy = next.windowVibrancy
             target.radius = next.radius
             target.opacity = next.opacity
-            target.background = next.background
+            delete (target as GlassOptions & { background?: string }).background
             this.value = next
             this.config.store.appearance.vibrancy = next.windowVibrancy
             await this.config.save()
@@ -66,7 +70,6 @@ class GlassSettings {
             target.windowVibrancy = previous.windowVibrancy
             target.radius = previous.radius
             target.opacity = previous.opacity
-            target.background = previous.background
             this.config.store.appearance.vibrancy = previousVibrancy
             this.status = `保存失败：${error instanceof Error ? error.message : String(error)}`
         } finally { this.saving = false }
