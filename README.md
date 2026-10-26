@@ -25,4 +25,4 @@ npm install --omit=dev --legacy-peer-deps /absolute/path/tabby-liquid-glass-them
 - 窗格圆角：0–24 px，分隔线两端会同步缩进。
 - 窗口透明：启用 Tabby 的 Vibrancy，使终端画布可以透出桌面背景；具体效果受桌面合成器影响。启用主题后，xterm 终端背景会透出对应窗格底色，避免 AI 终端与主题面板出现色差。
 
-Codex 等终端应用自行绘制的输入框等界面色块会保留。关闭样式开关会恢复 Tabby 原本的终端背景。
+开启窗口透明时，插件会将 Codex 根据终端底色生成的提示面板背景改为透明，让玻璃底色透出；其他程序的 ANSI 背景色保持不变。关闭样式开关会恢复 Tabby 原本的终端背景。

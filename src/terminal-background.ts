@@ -5,13 +5,94 @@ const KEY = 'liquidGlassTheme'
 type XtermLike = { options: { theme?: Record<string, unknown> } }
 type FrontendLike = {
     configure?: (profile: unknown) => void
+    write?: (data: string) => Promise<void>
     xterm?: XtermLike
+}
+
+function rgb (hex: string): [number, number, number] | undefined {
+    const match = /^#([0-9a-f]{6})$/i.exec(hex)
+    if (!match) return undefined
+    return [0, 2, 4].map(index => Number.parseInt(match[1].slice(index, index + 2), 16)) as [number, number, number]
+}
+
+/** Codex paints prompt/history surfaces by blending white or black into OSC 11's RGB. */
+function codexSurfaceColors (background: string): Set<string> {
+    const base = rgb(background)
+    if (!base) return new Set()
+    const light = (base[0] * 299 + base[1] * 587 + base[2] * 114) / 1000 >= 128
+    const top = light ? 0 : 255
+    const alphas = light ? [0.02, 0.04] : [0.12, 0.16]
+    const colors = new Set<string>()
+    for (const alpha of alphas) {
+        const color = base.map(channel => Math.round(top * alpha + channel * (1 - alpha)))
+        // Accommodate the TUI's integer rounding.
+        for (let red = -2; red <= 2; red++) for (let green = -2; green <= 2; green++) for (let blue = -2; blue <= 2; blue++) {
+            colors.add(color.map((channel, index) => Math.max(0, Math.min(255, channel + [red, green, blue][index])).toString(16).padStart(2, '0')).join(''))
+        }
+        const nearestIndex = Array.from({ length: 240 }, (_, index) => index + 16)
+            .sort((left, right) => colorDistance(indexedColor(left), color) - colorDistance(indexedColor(right), color))[0]
+        const nearest = indexedColor(nearestIndex)
+        if (nearest) colors.add(nearest)
+    }
+    return colors
+}
+
+function colorDistance (hex: string | undefined, color: number[]): number {
+    if (!hex) return Number.POSITIVE_INFINITY
+    const candidate = rgb(`#${hex}`)!
+    return candidate.reduce((total, channel, index) => total + (channel - color[index]) ** 2, 0)
+}
+
+function makeCodexSurfacesTransparent (input: string, colors: Set<string>): string {
+    if (!colors.size) return input
+    return input.replace(/\x1b\[([0-9;]*)m/g, (sequence, parameters: string) => {
+        const values = parameters.split(';').map(value => value === '' ? 0 : Number(value))
+        let changed = false
+        for (let index = 0; index < values.length;) {
+            if (values[index] === 48 && values[index + 1] === 2 && index + 4 < values.length) {
+                const color = values.slice(index + 2, index + 5).map(value => Math.max(0, Math.min(255, value)).toString(16).padStart(2, '0')).join('').toLowerCase()
+                if (colors.has(color)) {
+                    values.splice(index, 5, 49)
+                    changed = true
+                    continue
+                }
+                index += 5
+            } else if (values[index] === 48 && values[index + 1] === 5 && index + 2 < values.length) {
+                const color = indexedColor(values[index + 2])
+                if (color && colors.has(color)) {
+                    values.splice(index, 3, 49)
+                    changed = true
+                    continue
+                }
+                index += 3
+            } else index++
+        }
+        return changed ? `\x1b[${values.join(';')}m` : sequence
+    })
+}
+
+function indexedColor (index: number): string | undefined {
+    const basic = ['000000', '800000', '008000', '808000', '000080', '800080', '008080', 'c0c0c0', '808080', 'ff0000', '00ff00', 'ffff00', '0000ff', 'ff00ff', '00ffff', 'ffffff']
+    if (index >= 0 && index < 16) return basic[index]
+    if (index >= 232 && index <= 255) {
+        const value = (8 + (index - 232) * 10).toString(16).padStart(2, '0')
+        return value.repeat(3)
+    }
+    if (index >= 16 && index <= 231) {
+        const levels = [0, 95, 135, 175, 215, 255]
+        const offset = index - 16
+        return [levels[Math.floor(offset / 36)], levels[Math.floor(offset / 6) % 6], levels[offset % 6]]
+            .map(value => value.toString(16).padStart(2, '0')).join('')
+    }
+    return undefined
 }
 
 /** Let xterm use the pane surface painted by the glass theme. */
 @Injectable()
 export class GlassTerminalDecorator extends TerminalDecorator {
     private configureOriginals = new WeakMap<BaseTerminalTabComponent<any>, (profile: unknown) => void>()
+    private writeOriginals = new WeakMap<BaseTerminalTabComponent<any>, (data: string) => Promise<void>>()
+    private pendingOutput = new WeakMap<BaseTerminalTabComponent<any>, string>()
 
     constructor (private config: ConfigService, private themes: ThemesService) { super() }
 
@@ -24,6 +105,11 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         frontend.configure = profile => {
             original(profile)
             this.sync(terminal, frontend)
+        }
+        if (frontend.write) {
+            const writeOriginal = frontend.write.bind(frontend)
+            this.writeOriginals.set(terminal, writeOriginal)
+            frontend.write = data => writeOriginal(this.filterOutput(terminal, data))
         }
         this.subscribeUntilDetached(terminal, this.config.changed$.subscribe(() => {
             frontend.configure?.(terminal.profile)
@@ -38,8 +124,12 @@ export class GlassTerminalDecorator extends TerminalDecorator {
             frontend.configure = original
             original(terminal.profile)
         }
+        const originalWrite = this.writeOriginals.get(terminal)
+        if (originalWrite && frontend) frontend.write = originalWrite
         terminal.element?.nativeElement?.classList.remove('liquid-glass-terminal')
         this.configureOriginals.delete(terminal)
+        this.writeOriginals.delete(terminal)
+        this.pendingOutput.delete(terminal)
         super.detach(terminal)
     }
 
@@ -56,5 +146,28 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         const background = profileScheme?.background ?? activeScheme?.background
         if (!background || !/^#[0-9a-f]{6}$/i.test(background)) return
         frontend.xterm.options.theme = { ...frontend.xterm.options.theme, background: `${background}00` }
+    }
+
+    private filterOutput (terminal: BaseTerminalTabComponent<any>, data: string): string {
+        const combined = (this.pendingOutput.get(terminal) ?? '') + data
+        this.pendingOutput.delete(terminal)
+        const settings = this.config.store?.[KEY]
+        if (settings?.enabled !== true || settings.windowVibrancy !== true) return combined
+        const profileScheme = (terminal.profile as { terminalColorScheme?: { background?: string } }).terminalColorScheme
+        const activeScheme = this.themes._getActiveColorScheme() as { background?: string }
+        const background = profileScheme?.background ?? activeScheme?.background
+        if (!background) return combined
+
+        if (combined.endsWith('\x1b')) {
+            this.pendingOutput.set(terminal, '\x1b')
+            return combined.slice(0, -1)
+        }
+        const escapeStart = combined.lastIndexOf('\x1b[')
+        let complete = combined
+        if (escapeStart >= 0 && !/[\x40-\x7e]/.test(combined.slice(escapeStart + 2))) {
+            this.pendingOutput.set(terminal, combined.slice(escapeStart))
+            complete = combined.slice(0, escapeStart)
+        }
+        return makeCodexSurfacesTransparent(complete, codexSurfaceColors(background))
     }
 }
