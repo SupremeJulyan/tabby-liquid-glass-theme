@@ -9,6 +9,35 @@ type FrontendLike = {
     xterm?: XtermLike
 }
 
+const ANSI_COLORS = [
+    'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+    'brightBlack', 'brightRed', 'brightGreen', 'brightYellow', 'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite',
+]
+
+function colorKey (value: unknown): string | undefined {
+    if (typeof value !== 'string') return
+    const color = value.trim().toLowerCase()
+    if (/^#[0-9a-f]{6}$/.test(color)) return color
+    if (/^#[0-9a-f]{8}$/.test(color) && color.endsWith('ff')) return color.slice(0, 7)
+}
+
+function transparentizeSchemeBackground (theme: Record<string, unknown>): Record<string, unknown> {
+    const background = colorKey(theme.background)
+    const result: Record<string, unknown> = { ...theme, background: '#00000000' }
+    if (!background) return result
+
+    // Tabby's active color scheme supplies these ANSI values. When a palette
+    // intentionally uses its own background color as an ANSI shade, make that
+    // shade transparent too so it follows the Liquid Glass pane surface.
+    for (const name of ANSI_COLORS) {
+        if (colorKey(theme[name]) === background) result[name] = '#00000000'
+    }
+    if (Array.isArray(theme.extendedAnsi)) {
+        result.extendedAnsi = theme.extendedAnsi.map(color => colorKey(color) === background ? '#00000000' : color)
+    }
+    return result
+}
+
 /** Let xterm use the pane surface painted by the glass theme. */
 @Injectable()
 export class GlassTerminalDecorator extends TerminalDecorator {
@@ -48,9 +77,6 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         const enabled = this.config.store?.[KEY]?.enabled === true
         terminal.element?.nativeElement?.classList.toggle('liquid-glass-terminal', enabled)
         if (!enabled || !frontend.xterm?.options.theme) return
-        // Many TUIs use ANSI black for panels and highlighted output. The glass
-        // surface should show through those cells just as it does the default
-        // xterm background, otherwise the profile palette leaves dark blocks.
-        frontend.xterm.options.theme = { ...frontend.xterm.options.theme, background: '#00000000', black: '#00000000' }
+        frontend.xterm.options.theme = transparentizeSchemeBackground(frontend.xterm.options.theme)
     }
 }
