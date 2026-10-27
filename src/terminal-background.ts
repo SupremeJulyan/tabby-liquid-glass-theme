@@ -21,26 +21,46 @@ function codexSurfaceColors (background: string): Set<string> {
     if (!base) return new Set()
     const light = (base[0] * 299 + base[1] * 587 + base[2] * 114) / 1000 >= 128
     const top = light ? 0 : 255
-    const alphas = light ? [0.02, 0.04] : [0.12, 0.16]
+    const alphas = light ? [0.02, 0.04] : [0.02, 0.04, 0.12, 0.16]
     const colors = new Set<string>()
     for (const alpha of alphas) {
-        const color = base.map(channel => Math.round(top * alpha + channel * (1 - alpha)))
+        const color = base.map(channel => Math.floor(top * alpha + channel * (1 - alpha)))
         // Accommodate the TUI's integer rounding.
         for (let red = -2; red <= 2; red++) for (let green = -2; green <= 2; green++) for (let blue = -2; blue <= 2; blue++) {
             colors.add(color.map((channel, index) => Math.max(0, Math.min(255, channel + [red, green, blue][index])).toString(16).padStart(2, '0')).join(''))
         }
-        const nearestIndex = Array.from({ length: 240 }, (_, index) => index + 16)
-            .sort((left, right) => colorDistance(indexedColor(left), color) - colorDistance(indexedColor(right), color))[0]
-        const nearest = indexedColor(nearestIndex)
-        if (nearest) colors.add(nearest)
+        const nearestIndices = Array.from({ length: 240 }, (_, index) => index + 16)
+            .sort((left, right) => perceptualDistance(indexedColor(left), color) - perceptualDistance(indexedColor(right), color))
+            .slice(0, 2)
+        for (const index of nearestIndices) {
+            const nearest = indexedColor(index)
+            if (nearest) colors.add(nearest)
+        }
     }
     return colors
 }
 
-function colorDistance (hex: string | undefined, color: number[]): number {
+function perceptualDistance (hex: string | undefined, color: number[]): number {
     if (!hex) return Number.POSITIVE_INFINITY
     const candidate = rgb(`#${hex}`)!
-    return candidate.reduce((total, channel, index) => total + (channel - color[index]) ** 2, 0)
+    const toLab = (channels: number[]): [number, number, number] => {
+        const linear = channels.map(channel => {
+            const value = channel / 255
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+        })
+        const [r, g, b] = linear
+        const x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047
+        const y = r * 0.2126 + g * 0.7152 + b * 0.0722
+        const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883
+        const f = (value: number) => value > 0.008856 ? value ** (1 / 3) : 7.787 * value + 16 / 116
+        const fx = f(x)
+        const fy = f(y)
+        const fz = f(z)
+        return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)]
+    }
+    const a = toLab(candidate)
+    const b = toLab(color)
+    return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 }
 
 function makeCodexSurfacesTransparent (input: string, colors: Set<string>): string {
@@ -152,7 +172,7 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         const combined = (this.pendingOutput.get(terminal) ?? '') + data
         this.pendingOutput.delete(terminal)
         const settings = this.config.store?.[KEY]
-        if (settings?.enabled !== true || settings.windowVibrancy !== true) return combined
+        if (settings?.enabled !== true || settings.windowVibrancy === false) return combined
         const profileScheme = (terminal.profile as { terminalColorScheme?: { background?: string } }).terminalColorScheme
         const activeScheme = this.themes._getActiveColorScheme() as { background?: string }
         const background = profileScheme?.background ?? activeScheme?.background
