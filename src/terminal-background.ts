@@ -5,9 +5,11 @@ const KEY = 'liquidGlassTheme'
 type XtermLike = {
     options: { theme?: Record<string, unknown> }
     write?: (data: string | Uint8Array, callback?: () => void) => void
+    reset?: () => void
 }
 type FrontendLike = {
     configure?: (profile: unknown) => void
+    restoreState?: (state: string) => void
     xterm?: XtermLike
 }
 
@@ -25,6 +27,7 @@ function codexSurfaceColors (background: string): Set<string> {
     const top = light ? 0 : 255
     const alphas = light ? [0.02, 0.04] : [0.02, 0.04, 0.12, 0.16]
     const colors = new Set<string>()
+    colors.add(background.slice(1).toLowerCase())
     for (const alpha of alphas) {
         const color = base.map(channel => Math.floor(top * alpha + channel * (1 - alpha)))
         // Accommodate the TUI's integer rounding.
@@ -67,7 +70,7 @@ function perceptualDistance (hex: string | undefined, color: number[]): number {
     return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 }
 
-function makeCodexSurfacesTransparent (input: string, colors: Set<string>): string {
+function makeCodexSurfacesTransparent (input: string, colors: Set<string>, palette: string[] = []): string {
     if (!colors.size) return input
     return input.replace(/\x1b\[([0-9;:]*)m/g, (sequence, parameters: string) => {
         const values = parameters.split(';')
@@ -102,6 +105,19 @@ function makeCodexSurfacesTransparent (input: string, colors: Set<string>): stri
                     continue
                 }
                 index += 3
+            } else if (/^(?:4[0-7]|10[0-7])$/.test(values[index])) {
+                // 40–47 and 100–107 select the active scheme's ANSI palette.
+                // Codex also uses palette black for prompt/history surfaces.
+                const value = Number(values[index])
+                const paletteIndex = value >= 100 ? value - 92 : value - 40
+                const color = rgb(palette[paletteIndex] ?? '')
+                const hex = color?.map(channel => channel.toString(16).padStart(2, '0')).join('')
+                if (hex && colors.has(hex)) {
+                    values.splice(index, 1, '49')
+                    changed = true
+                    continue
+                }
+                index++
             } else index++
         }
         return changed ? `\x1b[${values.join(';')}m` : sequence
@@ -162,6 +178,20 @@ export class GlassTerminalDecorator extends TerminalDecorator {
                 return xtermWrite(typeof data === 'string' ? filtered : new TextEncoder().encode(filtered), callback)
             }
         }
+        // Tabby restores saved scrollback before decorators attach, so those
+        // writes bypass the filter above. Rewrite only matching saved surfaces
+        // after xterm has finished consuming its initial restore stream.
+        if (typeof terminal.savedState === 'string' && frontend.restoreState && xterm.reset && xterm.write) {
+            const savedState = terminal.savedState
+            const filteredState = this.filterOutput(terminal, savedState)
+            if (filteredState !== savedState) {
+                terminal.savedState = filteredState
+                xterm.write('', () => {
+                    xterm.reset?.()
+                    frontend.restoreState?.(filteredState)
+                })
+            }
+        }
         this.subscribeUntilDetached(terminal, this.config.changed$.subscribe(() => {
             frontend.configure?.(terminal.profile)
         }))
@@ -209,6 +239,7 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         const activeScheme = this.themes._getActiveColorScheme() as { background?: string }
         const background = profileScheme?.background ?? activeScheme?.background
         if (!background) return combined
+        const scheme = (profileScheme ?? activeScheme) as { colors?: string[] }
 
         if (combined.endsWith('\x1b')) {
             this.pendingOutput.set(terminal, '\x1b')
@@ -220,6 +251,6 @@ export class GlassTerminalDecorator extends TerminalDecorator {
             this.pendingOutput.set(terminal, combined.slice(escapeStart))
             complete = combined.slice(0, escapeStart)
         }
-        return makeCodexSurfacesTransparent(complete, codexSurfaceColors(background))
+        return makeCodexSurfacesTransparent(complete, codexSurfaceColors(background), scheme.colors)
     }
 }
