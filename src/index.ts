@@ -65,15 +65,47 @@ class GlassService {
       <label>窗格圆角（px）<input class="form-control" type="number" min="0" max="24" [(ngModel)]="value.radius"></label>
       <label>背景不透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.opacity"></label>
       <p><small>关闭窗口透明时，主背景、侧栏、文件区和终端使用不透明的系统配色。开启窗口透明后，不透明度控制玻璃表面的颜色浓度。</small></p>
+      <div class="wallpaper-setting">
+        <span>背景图片</span>
+        <input #wallpaperFile class="wallpaper-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" (change)="selectWallpaper($event)">
+        <button type="button" class="btn btn-secondary" (click)="wallpaperFile.click()">选择图片</button>
+        <button *ngIf="value.wallpaper" type="button" class="btn btn-secondary" (click)="value.wallpaper = ''">移除图片</button>
+        <img *ngIf="value.wallpaper" class="wallpaper-preview" [src]="value.wallpaper" alt="背景图片预览">
+        <label *ngIf="value.wallpaper">图片透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.wallpaperOpacity"></label>
+        <small>选择 PNG、JPEG、WebP、GIF 或 AVIF 图片（最大 8 MB）。图片保存在 Tabby 配置中。</small>
+      </div>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{saving ? '保存中…' : '保存'}}</button>
       <span class="save-status" role="status" aria-live="polite">{{status}}</span>`,
-    styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}'],
+    styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}.wallpaper-setting{display:grid;justify-items:start;gap:10px;margin:22px 0}.wallpaper-file{display:none}.wallpaper-preview{max-width:320px;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--bs-border-color)}.wallpaper-setting small{opacity:.8}'],
 })
 class GlassSettings {
     value: GlassOptions
     saving = false
     status = ''
     constructor (private config: ConfigService) { this.value = options(config.store[KEY]) }
+    selectWallpaper (event: Event): void {
+        const input = event.target as HTMLInputElement
+        const file = input.files?.[0]
+        input.value = ''
+        if (!file) return
+        if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'].includes(file.type)) {
+            this.status = '图片格式不支持，请选择 PNG、JPEG、WebP、GIF 或 AVIF'
+            return
+        }
+        if (file.size > 8 * 1024 * 1024) {
+            this.status = '图片不能超过 8 MB'
+            return
+        }
+        const reader = new FileReader()
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                this.value.wallpaper = reader.result
+                this.status = '图片已选择；点击保存后生效'
+            }
+        }
+        reader.onerror = () => { this.status = '读取图片失败' }
+        reader.readAsDataURL(file)
+    }
     async save (): Promise<void> {
         this.saving = true
         const target = this.config.store[KEY] as GlassOptions
@@ -85,6 +117,8 @@ class GlassSettings {
             target.windowVibrancy = next.windowVibrancy
             target.radius = next.radius
             target.opacity = next.opacity
+            target.wallpaper = next.wallpaper
+            target.wallpaperOpacity = next.wallpaperOpacity
             delete (target as GlassOptions & { background?: string }).background
             this.value = next
             this.config.store.appearance.vibrancy = next.windowVibrancy
@@ -95,6 +129,8 @@ class GlassSettings {
             target.windowVibrancy = previous.windowVibrancy
             target.radius = previous.radius
             target.opacity = previous.opacity
+            target.wallpaper = previous.wallpaper
+            target.wallpaperOpacity = previous.wallpaperOpacity
             this.config.store.appearance.vibrancy = previousVibrancy
             this.status = `保存失败：${error instanceof Error ? error.message : String(error)}`
         } finally { this.saving = false }

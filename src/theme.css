@@ -10,8 +10,14 @@ body[data-liquid-glass-theme], body[data-liquid-glass-theme] app-root {
 body[data-liquid-glass-theme] { background: transparent !important; }
 body[data-liquid-glass-theme] app-root {
  background: linear-gradient(135deg,rgba(var(--gg-bg-rgb),var(--gg-alpha)),rgba(var(--gg-bg-rgb),var(--gg-alpha))) !important;
- color: var(--gg-text); border-radius: 14px; overflow: hidden;
+ color: var(--gg-text); border-radius: 14px; overflow: hidden; position: relative; isolation: isolate;
  box-shadow: inset 0 0 0 1px var(--gg-edge);
+}
+body[data-liquid-glass-theme][data-liquid-glass-wallpaper] app-root { background: transparent !important; }
+body[data-liquid-glass-theme][data-liquid-glass-wallpaper] app-root::before {
+ content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+ background: var(--gg-wallpaper) center / cover no-repeat;
+ opacity: var(--gg-wallpaper-opacity);
 }
 body[data-liquid-glass-theme] app-root tab-body, body[data-liquid-glass-theme] app-root .content-tab-active { background: transparent !important; }
 body[data-liquid-glass-theme] app-root .tab-bar,
@@ -43,6 +49,9 @@ body[data-liquid-glass-theme][data-liquid-glass-vibrancy="disabled"] app-root .l
 }
 body[data-liquid-glass-theme][data-liquid-glass-vibrancy="enabled"] app-root .liquid-glass-terminal {
  background-color: transparent !important;
+}
+body[data-liquid-glass-theme][data-liquid-glass-wallpaper] app-root split-tab > .child:not(.minimized) {
+ background: rgba(var(--gg-bg-rgb),var(--gg-alpha));
 }
 body[data-liquid-glass-theme] app-root split-tab > .child.focused { box-shadow: inset 0 0 0 1px rgba(181,204,255,.23); }
 body[data-liquid-glass-theme] app-root .arw-tree-host {
