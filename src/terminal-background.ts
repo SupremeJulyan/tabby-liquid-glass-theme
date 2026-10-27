@@ -28,7 +28,9 @@ function codexSurfaceColors (background: string): Set<string> {
     for (const alpha of alphas) {
         const color = base.map(channel => Math.floor(top * alpha + channel * (1 - alpha)))
         // Accommodate the TUI's integer rounding.
-        for (let red = -2; red <= 2; red++) for (let green = -2; green <= 2; green++) for (let blue = -2; blue <= 2; blue++) {
+        // Codex rounds its blended colors independently from the RGB triplet
+        // reported by the terminal. A few channels can differ by 3–4 values.
+        for (let red = -4; red <= 4; red++) for (let green = -4; green <= 4; green++) for (let blue = -4; blue <= 4; blue++) {
             colors.add(color.map((channel, index) => Math.max(0, Math.min(255, channel + [red, green, blue][index])).toString(16).padStart(2, '0')).join(''))
         }
         const nearestIndices = Array.from({ length: 240 }, (_, index) => index + 16)
@@ -128,6 +130,7 @@ export class GlassTerminalDecorator extends TerminalDecorator {
     private configureOriginals = new WeakMap<BaseTerminalTabComponent<any>, (profile: unknown) => void>()
     private xtermWriteOriginals = new WeakMap<BaseTerminalTabComponent<any>, NonNullable<XtermLike['write']>>()
     private pendingOutput = new WeakMap<BaseTerminalTabComponent<any>, string>()
+    private outputDecoders = new WeakMap<BaseTerminalTabComponent<any>, TextDecoder>()
 
     constructor (private config: ConfigService, private themes: ThemesService) { super() }
 
@@ -147,8 +150,16 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         if (xterm.write) {
             const xtermWrite = xterm.write.bind(xterm)
             this.xtermWriteOriginals.set(terminal, xtermWrite)
+            this.outputDecoders.set(terminal, new TextDecoder())
             xterm.write = (data, callback) => {
-                return xtermWrite(typeof data === 'string' ? this.filterOutput(terminal, data) : data, callback)
+                // Tabby forwards PTY data as Uint8Array. Decode incrementally so UTF-8
+                // characters split across writes remain intact, then encode the filtered
+                // output back to the same xterm input type.
+                const decoded = typeof data === 'string'
+                    ? data
+                    : this.outputDecoders.get(terminal)!.decode(data, { stream: true })
+                const filtered = this.filterOutput(terminal, decoded)
+                return xtermWrite(typeof data === 'string' ? filtered : new TextEncoder().encode(filtered), callback)
             }
         }
         this.subscribeUntilDetached(terminal, this.config.changed$.subscribe(() => {
@@ -169,6 +180,7 @@ export class GlassTerminalDecorator extends TerminalDecorator {
         terminal.element?.nativeElement?.classList.remove('liquid-glass-terminal')
         this.configureOriginals.delete(terminal)
         this.xtermWriteOriginals.delete(terminal)
+        this.outputDecoders.delete(terminal)
         this.pendingOutput.delete(terminal)
         super.detach(terminal)
     }
