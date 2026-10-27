@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core'
 import { ConfigService, ThemesService } from 'tabby-core'
 import { BaseTerminalTabComponent, TerminalDecorator } from 'tabby-terminal'
 const KEY = 'liquidGlassTheme'
-type XtermLike = { options: { theme?: Record<string, unknown> } }
+type XtermLike = {
+    options: { theme?: Record<string, unknown> }
+    write?: (data: string | Uint8Array, callback?: () => void) => void
+}
 type FrontendLike = {
     configure?: (profile: unknown) => void
-    write?: (data: string) => Promise<void>
     xterm?: XtermLike
 }
 
@@ -65,22 +67,35 @@ function perceptualDistance (hex: string | undefined, color: number[]): number {
 
 function makeCodexSurfacesTransparent (input: string, colors: Set<string>): string {
     if (!colors.size) return input
-    return input.replace(/\x1b\[([0-9;]*)m/g, (sequence, parameters: string) => {
-        const values = parameters.split(';').map(value => value === '' ? 0 : Number(value))
+    return input.replace(/\x1b\[([0-9;:]*)m/g, (sequence, parameters: string) => {
+        const values = parameters.split(';')
         let changed = false
         for (let index = 0; index < values.length;) {
-            if (values[index] === 48 && values[index + 1] === 2 && index + 4 < values.length) {
-                const color = values.slice(index + 2, index + 5).map(value => Math.max(0, Math.min(255, value)).toString(16).padStart(2, '0')).join('').toLowerCase()
+            const colon = /^(48:2:|48:5:)/.exec(values[index])
+            if (colon) {
+                const components = values[index].split(':')
+                const isTrueColor = components[1] === '2'
+                const color = isTrueColor
+                    ? components.slice(-3).map(value => Math.max(0, Math.min(255, Number(value))).toString(16).padStart(2, '0')).join('').toLowerCase()
+                    : indexedColor(Number(components.at(-1)))
+                if (color && colors.has(color)) {
+                    values.splice(index, 1, '49')
+                    changed = true
+                    continue
+                }
+                index++
+            } else if (values[index] === '48' && values[index + 1] === '2' && index + 4 < values.length) {
+                const color = values.slice(index + 2, index + 5).map(value => Math.max(0, Math.min(255, Number(value))).toString(16).padStart(2, '0')).join('').toLowerCase()
                 if (colors.has(color)) {
-                    values.splice(index, 5, 49)
+                    values.splice(index, 5, '49')
                     changed = true
                     continue
                 }
                 index += 5
-            } else if (values[index] === 48 && values[index + 1] === 5 && index + 2 < values.length) {
-                const color = indexedColor(values[index + 2])
+            } else if (values[index] === '48' && values[index + 1] === '5' && index + 2 < values.length) {
+                const color = indexedColor(Number(values[index + 2]))
                 if (color && colors.has(color)) {
-                    values.splice(index, 3, 49)
+                    values.splice(index, 3, '49')
                     changed = true
                     continue
                 }
@@ -111,7 +126,7 @@ function indexedColor (index: number): string | undefined {
 @Injectable()
 export class GlassTerminalDecorator extends TerminalDecorator {
     private configureOriginals = new WeakMap<BaseTerminalTabComponent<any>, (profile: unknown) => void>()
-    private writeOriginals = new WeakMap<BaseTerminalTabComponent<any>, (data: string) => Promise<void>>()
+    private xtermWriteOriginals = new WeakMap<BaseTerminalTabComponent<any>, NonNullable<XtermLike['write']>>()
     private pendingOutput = new WeakMap<BaseTerminalTabComponent<any>, string>()
 
     constructor (private config: ConfigService, private themes: ThemesService) { super() }
@@ -126,10 +141,15 @@ export class GlassTerminalDecorator extends TerminalDecorator {
             original(profile)
             this.sync(terminal, frontend)
         }
-        if (frontend.write) {
-            const writeOriginal = frontend.write.bind(frontend)
-            this.writeOriginals.set(terminal, writeOriginal)
-            frontend.write = data => writeOriginal(this.filterOutput(terminal, data))
+        // Filter at xterm's final text write boundary so session output and direct
+        // frontend writes both receive the same SGR handling.
+        const xterm = frontend.xterm
+        if (xterm.write) {
+            const xtermWrite = xterm.write.bind(xterm)
+            this.xtermWriteOriginals.set(terminal, xtermWrite)
+            xterm.write = (data, callback) => {
+                return xtermWrite(typeof data === 'string' ? this.filterOutput(terminal, data) : data, callback)
+            }
         }
         this.subscribeUntilDetached(terminal, this.config.changed$.subscribe(() => {
             frontend.configure?.(terminal.profile)
@@ -144,11 +164,11 @@ export class GlassTerminalDecorator extends TerminalDecorator {
             frontend.configure = original
             original(terminal.profile)
         }
-        const originalWrite = this.writeOriginals.get(terminal)
-        if (originalWrite && frontend) frontend.write = originalWrite
+        const originalWrite = this.xtermWriteOriginals.get(terminal)
+        if (originalWrite && frontend?.xterm) frontend.xterm.write = originalWrite
         terminal.element?.nativeElement?.classList.remove('liquid-glass-terminal')
         this.configureOriginals.delete(terminal)
-        this.writeOriginals.delete(terminal)
+        this.xtermWriteOriginals.delete(terminal)
         this.pendingOutput.delete(terminal)
         super.detach(terminal)
     }
