@@ -72,7 +72,7 @@ class GlassService {
         <button *ngIf="value.wallpaper" type="button" class="btn btn-secondary" (click)="value.wallpaper = ''">移除图片</button>
         <img *ngIf="value.wallpaper" class="wallpaper-preview" [src]="value.wallpaper" alt="背景图片预览">
         <label *ngIf="value.wallpaper">图片透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.wallpaperOpacity"></label>
-        <small>选择 PNG、JPEG、WebP、GIF 或 AVIF 图片（最大 8 MB）。图片保存在 Tabby 配置中。</small>
+        <small>选择 PNG、JPEG、WebP、GIF 或 AVIF 图片（最大 100 MB）。图片保存在 Tabby 配置中。</small>
       </div>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{saving ? '保存中…' : '保存'}}</button>
       <span class="save-status" role="status" aria-live="polite">{{status}}</span>`,
@@ -92,8 +92,8 @@ class GlassSettings {
             this.status = '图片格式不支持，请选择 PNG、JPEG、WebP、GIF 或 AVIF'
             return
         }
-        if (file.size > 8 * 1024 * 1024) {
-            this.status = '图片不能超过 8 MB'
+        if (file.size > 100 * 1024 * 1024) {
+            this.status = '图片不能超过 100 MB'
             return
         }
         const reader = new FileReader()
