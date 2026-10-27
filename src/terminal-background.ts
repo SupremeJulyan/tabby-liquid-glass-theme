@@ -15,7 +15,12 @@ type FrontendLike = {
 }
 
 function makeCodexSurfacesTransparent (input: string): string {
-    return input.replace(/\x1b\[([0-9;:]*)m/g, (sequence, parameters: string) => {
+    const noReverseScreen = input.replace(/\x1b\[\?([0-9;]+)([hl])/g, (sequence, modes: string, action: string) => {
+        const remaining = modes.split(';').filter(mode => mode !== '5')
+        if (remaining.length === modes.split(';').length) return sequence
+        return remaining.length ? `\x1b[?${remaining.join(';')}${action}` : ''
+    })
+    return noReverseScreen.replace(/\x1b\[([0-9;:]*)m/g, (sequence, parameters: string) => {
         const values = parameters.split(';')
         let changed = false
         for (let index = 0; index < values.length;) {
@@ -28,6 +33,10 @@ function makeCodexSurfacesTransparent (input: string): string {
                 changed = true
             } else if (/^(?:4[0-7]|10[0-7])$/.test(values[index])) {
                 values.splice(index, 1, '49')
+                changed = true
+            } else if (values[index] === '7') {
+                // Reverse video makes the foreground paint as a cell fill.
+                values.splice(index, 1, '27')
                 changed = true
             } else if (values[index] === '48' && values[index + 1] === '2' && index + 4 < values.length) {
                 values.splice(index, 5, '49')

@@ -17,16 +17,40 @@ class GlassConfig extends ConfigProvider { defaults = { [KEY]: DEFAULTS } }
 class GlassService {
     private subscriptions = new Subscription()
     private style = new GlassStyle(document, stylesheet)
+    private rendererSavePending = false
     constructor (config: ConfigService, themes: ThemesService) {
         const refresh = (): void => {
             const active = themes as unknown as { _getActiveColorScheme(): { background?: string } }
             const background = active._getActiveColorScheme()?.background ?? ''
-            this.style.update(config.store?.[KEY] ?? DEFAULTS, background)
+            const value = config.store?.[KEY] ?? DEFAULTS
+            this.style.update(value, background)
+            this.syncTransparentRenderer(config, value)
         }
         this.subscriptions.add(config.ready$.subscribe(refresh))
         this.subscriptions.add(config.changed$.subscribe(refresh))
         this.subscriptions.add(themes.themeChanged$.subscribe(refresh))
         refresh()
+    }
+    private syncTransparentRenderer (config: ConfigService, value: GlassOptions): void {
+        const terminal = config.store?.terminal
+        const plugin = config.store?.[KEY] as (GlassOptions & { rendererBeforeVibrancy?: string }) | undefined
+        if (!terminal || !plugin || this.rendererSavePending) return
+
+        let changed = false
+        if (value.enabled && value.windowVibrancy && terminal.frontend !== 'xterm') {
+            plugin.rendererBeforeVibrancy ??= terminal.frontend ?? 'xterm-webgl'
+            terminal.frontend = 'xterm'
+            changed = true
+        } else if ((!value.enabled || !value.windowVibrancy) && plugin.rendererBeforeVibrancy) {
+            if (terminal.frontend === 'xterm') terminal.frontend = plugin.rendererBeforeVibrancy
+            delete plugin.rendererBeforeVibrancy
+            changed = true
+        }
+        if (!changed) return
+
+        config.requestRestart()
+        this.rendererSavePending = true
+        void config.save().catch(() => undefined).finally(() => { this.rendererSavePending = false })
     }
     ngOnDestroy (): void { this.subscriptions.unsubscribe(); this.style.destroy() }
 }
@@ -37,6 +61,7 @@ class GlassService {
       <p>统一标签页、工作区侧栏和终端窗格的外观。</p>
       <label><input type="checkbox" [(ngModel)]="value.enabled"> 启用样式</label>
       <label><input type="checkbox" [(ngModel)]="value.windowVibrancy"> 启用窗口透明，透出桌面背景</label>
+      <p><small>窗口透明会使用 Tabby 的 Canvas 终端渲染器，并提示重启，以避免 WebGL 终端出现不透明色块。</small></p>
       <label>窗格圆角（px）<input class="form-control" type="number" min="0" max="24" [(ngModel)]="value.radius"></label>
       <label>背景不透明度（%）<input class="form-control" type="number" min="0" max="100" [(ngModel)]="value.opacity"></label>
       <p><small>关闭窗口透明时，主背景、侧栏、文件区和终端使用不透明的系统配色。开启窗口透明后，不透明度控制玻璃表面的颜色浓度。</small></p>
@@ -64,7 +89,7 @@ class GlassSettings {
             this.value = next
             this.config.store.appearance.vibrancy = next.windowVibrancy
             await this.config.save()
-            this.status = '已保存'
+            this.status = this.config.restartRequested ? '已保存；请重启 Tabby 应用终端渲染器更改' : '已保存'
         } catch (error) {
             target.enabled = previous.enabled
             target.windowVibrancy = previous.windowVibrancy

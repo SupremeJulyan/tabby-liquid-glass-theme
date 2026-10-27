@@ -11,8 +11,8 @@ test('enable/update/disable preserves foreign styles and removes only owned DOM 
     const window = new Window(), doc = window.document
     doc.head.innerHTML = '<style id="custom-css">body{color:red}</style>'
     const style = new GlassStyle(doc, css)
-    style.update({ enabled: true, radius: 18, opacity: 80 })
-    style.update({ enabled: true, radius: 8, opacity: 100 })
+    style.update({ enabled: true, radius: 18, opacity: 80 }, '#171717')
+    style.update({ enabled: true, radius: 8, opacity: 100 }, '#171717')
     assert.equal(doc.querySelectorAll(`#${STYLE_ID}`).length, 1)
     assert.equal(doc.body.hasAttribute('data-liquid-glass-theme'), true)
     assert.match(doc.getElementById(STYLE_ID).textContent, /--gg-radius:8px/)
@@ -28,7 +28,7 @@ test('pane rounding and independent divider paint share radius without reducing 
     const window = new Window(), doc = window.document
     doc.body.innerHTML = '<app-root><split-tab><div class="child"></div><split-tab-spanner class="h"></split-tab-spanner></split-tab></app-root>'
     const style = new GlassStyle(doc, css)
-    style.update({ enabled: true, radius: 20, opacity: 100 })
+    style.update({ enabled: true, radius: 20, opacity: 100 }, '#171717')
     const rules = [...doc.getElementById(STYLE_ID).sheet.cssRules]
     const divider = rules.find(r => r.selectorText?.includes('split-tab-spanner.h::after'))
     assert.equal(divider.style.getPropertyValue('top'), 'var(--gg-radius)')
