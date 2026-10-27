@@ -10,6 +10,7 @@ type XtermLike = {
 type FrontendLike = {
     configure?: (profile: unknown) => void
     restoreState?: (state: string) => void
+    serializeAddon?: { serialize: (options?: Record<string, unknown>) => string }
     xterm?: XtermLike
 }
 
@@ -185,10 +186,18 @@ export class GlassTerminalDecorator extends TerminalDecorator {
             const savedState = terminal.savedState
             const filteredState = this.filterOutput(terminal, savedState)
             if (filteredState !== savedState) {
-                terminal.savedState = filteredState
                 xterm.write('', () => {
+                    // Include Tabby's “History restored” marker and any writes
+                    // queued immediately after its saved-state replay.
+                    const currentState = frontend.serializeAddon?.serialize({
+                        excludeAltBuffer: true,
+                        excludeModes: true,
+                        scrollback: 1000,
+                    }) ?? filteredState
+                    const cleanState = this.filterOutput(terminal, currentState)
+                    terminal.savedState = cleanState
                     xterm.reset?.()
-                    frontend.restoreState?.(filteredState)
+                    frontend.restoreState?.(cleanState)
                 })
             }
         }
