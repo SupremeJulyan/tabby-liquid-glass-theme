@@ -1,11 +1,17 @@
-export interface GlassOptions { enabled: boolean; windowVibrancy: boolean; radius: number; opacity: number }
-export const DEFAULTS: GlassOptions = { enabled: false, windowVibrancy: true, radius: 12, opacity: 100 }
+export interface GlassOptions { enabled: boolean; windowVibrancy: boolean; radius: number; opacity: number; rendererBeforeVibrancy: string }
+export const DEFAULTS: GlassOptions = { enabled: false, windowVibrancy: true, radius: 12, opacity: 100, rendererBeforeVibrancy: '' }
 export const STYLE_ID = 'tabby-liquid-glass-theme'
 
 export function options (value: Partial<GlassOptions> = {}): GlassOptions {
     const clamp = (value: unknown, fallback: number, min: number, max: number): number =>
         typeof value === 'number' && Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback
-    return { enabled: value.enabled === true, windowVibrancy: value.windowVibrancy !== false, radius: clamp(value.radius, 12, 0, 24), opacity: clamp(value.opacity, 100, 0, 100) }
+    return {
+        enabled: value.enabled === true,
+        windowVibrancy: value.windowVibrancy !== false,
+        radius: clamp(value.radius, 12, 0, 24),
+        opacity: clamp(value.opacity, 100, 0, 100),
+        rendererBeforeVibrancy: typeof value.rendererBeforeVibrancy === 'string' ? value.rendererBeforeVibrancy : '',
+    }
 }
 
 /** Applies only plugin-owned DOM state, without changing Tabby's saved settings. */

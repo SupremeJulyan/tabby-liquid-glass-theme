@@ -33,17 +33,17 @@ class GlassService {
     }
     private syncTransparentRenderer (config: ConfigService, value: GlassOptions): void {
         const terminal = config.store?.terminal
-        const plugin = config.store?.[KEY] as (GlassOptions & { rendererBeforeVibrancy?: string }) | undefined
+        const plugin = config.store?.[KEY] as GlassOptions | undefined
         if (!terminal || !plugin || this.rendererSavePending) return
 
         let changed = false
         if (value.enabled && value.windowVibrancy && terminal.frontend !== 'xterm') {
-            plugin.rendererBeforeVibrancy ??= terminal.frontend ?? 'xterm-webgl'
+            plugin.rendererBeforeVibrancy ||= terminal.frontend ?? 'xterm-webgl'
             terminal.frontend = 'xterm'
             changed = true
         } else if ((!value.enabled || !value.windowVibrancy) && plugin.rendererBeforeVibrancy) {
             if (terminal.frontend === 'xterm') terminal.frontend = plugin.rendererBeforeVibrancy
-            delete plugin.rendererBeforeVibrancy
+            plugin.rendererBeforeVibrancy = ''
             changed = true
         }
         if (!changed) return
