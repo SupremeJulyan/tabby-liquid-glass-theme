@@ -1,6 +1,6 @@
 {
   "name": "tabby-liquid-glass-theme",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Configurable rounded liquid glass theme for Tabby",
   "keywords": [
     "tabby-plugin",
@@ -42,5 +42,28 @@
     "tabby-settings": "1.0.231-nightly.0",
     "tabby-terminal": "1.0.231-nightly.0"
   },
-  "author": "Julyan"
+  "author": "Julyan",
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
+    "@angular/common": {
+      "optional": true
+    },
+    "@angular/forms": {
+      "optional": true
+    },
+    "tabby-core": {
+      "optional": true
+    },
+    "tabby-settings": {
+      "optional": true
+    },
+    "tabby-terminal": {
+      "optional": true
+    },
+    "rxjs": {
+      "optional": true
+    }
+  }
 }
