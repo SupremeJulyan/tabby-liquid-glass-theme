@@ -1,4 +1,4 @@
-export interface GlassOptions { enabled: boolean; windowVibrancy: boolean; radius: number; opacity: number; wallpaper: string; wallpaperOpacity: number; rendererBeforeVibrancy: string }
+export interface GlassOptions { enabled: boolean; windowVibrancy: boolean; radius: number; opacity: number; wallpaper: string; wallpaperOpacity: number; rendererBeforeVibrancy: string; vibrancyBeforeTheme?: boolean }
 export const DEFAULTS: GlassOptions = { enabled: false, windowVibrancy: true, radius: 12, opacity: 100, wallpaper: '', wallpaperOpacity: 100, rendererBeforeVibrancy: '' }
 export const STYLE_ID = 'tabby-liquid-glass-theme'
 
@@ -16,6 +16,7 @@ export function options (value: Partial<GlassOptions> = {}): GlassOptions {
         wallpaper: /^data:image\/(?:png|jpeg|webp|gif|avif);base64,[a-z\d+/]+=*$/i.test(wallpaper) ? wallpaper : '',
         wallpaperOpacity: clamp(value.wallpaperOpacity, 100, 0, 100),
         rendererBeforeVibrancy: typeof value.rendererBeforeVibrancy === 'string' ? value.rendererBeforeVibrancy : '',
+        vibrancyBeforeTheme: typeof value.vibrancyBeforeTheme === 'boolean' ? value.vibrancyBeforeTheme : undefined,
     }
 }
 

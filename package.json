@@ -11,6 +11,7 @@
   "license": "MIT",
   "files": [
     "dist",
+    "scripts/uninstall-cleanup.mjs",
     "README.md",
     "LICENSE",
     "liquid-glass.yaml"
@@ -18,7 +19,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node build.mjs",
     "test": "node --test test/*.test.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "cleanup": "node scripts/uninstall-cleanup.mjs"
   },
   "peerDependencies": {
     "@angular/core": "^15.2.0",

@@ -1,7 +1,7 @@
 import { Component, Injectable, NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { ConfigProvider, ConfigService, ThemesService } from 'tabby-core'
+import { ConfigProvider, ConfigService, PlatformService, ThemesService } from 'tabby-core'
 import { TerminalDecorator } from 'tabby-terminal'
 import { SettingsTabProvider } from 'tabby-settings'
 import { Subscription } from 'rxjs'
@@ -75,14 +75,15 @@ class GlassService {
         <small>选择 PNG、JPEG、WebP、GIF 或 AVIF 图片（最大 100 MB）。图片保存在 Tabby 配置中。</small>
       </div>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{saving ? '保存中…' : '保存'}}</button>
+      <button type="button" class="btn btn-danger uninstall-button" (click)="uninstall()" [disabled]="saving">卸载插件</button>
       <span class="save-status" role="status" aria-live="polite">{{status}}</span>`,
-    styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}.wallpaper-setting{display:grid;justify-items:start;gap:10px;margin:22px 0}.wallpaper-file{display:none}.wallpaper-preview{max-width:320px;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--bs-border-color)}.wallpaper-setting small{opacity:.8}'],
+    styles: [':host{display:block;max-width:640px}label{display:block;margin:18px 0}.form-control{max-width:220px;margin-top:6px}p{line-height:1.7}.save-status{display:inline-block;margin-left:12px;min-height:1em}.uninstall-button{margin-left:8px}.wallpaper-setting{display:grid;justify-items:start;gap:10px;margin:22px 0}.wallpaper-file{display:none}.wallpaper-preview{max-width:320px;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--bs-border-color)}.wallpaper-setting small{opacity:.8}'],
 })
 class GlassSettings {
     value: GlassOptions
     saving = false
     status = ''
-    constructor (private config: ConfigService) { this.value = options(config.store[KEY]) }
+    constructor (private config: ConfigService, private platform: PlatformService) { this.value = options(config.store[KEY]) }
     selectWallpaper (event: Event): void {
         const input = event.target as HTMLInputElement
         const file = input.files?.[0]
@@ -106,11 +107,12 @@ class GlassSettings {
         reader.onerror = () => { this.status = '读取图片失败' }
         reader.readAsDataURL(file)
     }
-    async save (): Promise<void> {
+    async save (): Promise<boolean> {
         this.saving = true
         const target = this.config.store[KEY] as GlassOptions
         const previous = options(target)
         const previousVibrancy = this.config.store.appearance.vibrancy
+        const previousFrontend = this.config.store.terminal.frontend
         try {
             const next = options(this.value)
             target.enabled = next.enabled
@@ -121,9 +123,23 @@ class GlassSettings {
             target.wallpaperOpacity = next.wallpaperOpacity
             delete (target as GlassOptions & { background?: string }).background
             this.value = next
-            this.config.store.appearance.vibrancy = next.windowVibrancy
+            if (next.enabled) {
+                if (!previous.enabled) target.vibrancyBeforeTheme = previousVibrancy
+                this.config.store.appearance.vibrancy = next.windowVibrancy
+            } else {
+                if (previous.enabled) this.config.store.appearance.vibrancy = previous.vibrancyBeforeTheme ?? false
+                delete target.vibrancyBeforeTheme
+            }
+            if ((!next.enabled || !next.windowVibrancy) && target.rendererBeforeVibrancy) {
+                if (this.config.store.terminal.frontend === 'xterm') {
+                    this.config.store.terminal.frontend = target.rendererBeforeVibrancy
+                    this.config.requestRestart()
+                }
+                target.rendererBeforeVibrancy = ''
+            }
             await this.config.save()
             this.status = this.config.restartRequested ? '已保存；请重启 Tabby 应用终端渲染器更改' : '已保存'
+            return true
         } catch (error) {
             target.enabled = previous.enabled
             target.windowVibrancy = previous.windowVibrancy
@@ -131,8 +147,25 @@ class GlassSettings {
             target.opacity = previous.opacity
             target.wallpaper = previous.wallpaper
             target.wallpaperOpacity = previous.wallpaperOpacity
+            target.rendererBeforeVibrancy = previous.rendererBeforeVibrancy
+            target.vibrancyBeforeTheme = previous.vibrancyBeforeTheme
             this.config.store.appearance.vibrancy = previousVibrancy
+            this.config.store.terminal.frontend = previousFrontend
+            this.value = previous
             this.status = `保存失败：${error instanceof Error ? error.message : String(error)}`
+            return false
+        } finally { this.saving = false }
+    }
+    async uninstall (): Promise<void> {
+        if (!window.confirm('卸载液态玻璃主题？这会先恢复启用前的窗口透明和终端渲染设置。')) return
+        this.value.enabled = false
+        if (!await this.save()) return
+        this.saving = true
+        try {
+            await this.platform.uninstallPlugin('tabby-liquid-glass-theme')
+            this.status = '插件已卸载；请重启 Tabby 完成清理'
+        } catch (error) {
+            this.status = `卸载失败：${error instanceof Error ? error.message : String(error)}`
         } finally { this.saving = false }
     }
 }

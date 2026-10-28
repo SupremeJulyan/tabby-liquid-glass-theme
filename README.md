@@ -4,6 +4,10 @@
 
 ## 安装
 
+可从 [GitHub Releases](https://github.com/SupremeJulyan/tabby-liquid-glass-theme/releases) 下载 `.tgz` 安装包。安装包作为 Release 附件分发，不提交到 Git 仓库。
+
+也可以从源码构建：
+
 ```sh
 npm install --legacy-peer-deps
 npm run build
@@ -16,7 +20,7 @@ npm pack
 npm install --omit=dev --legacy-peer-deps /absolute/path/tabby-liquid-glass-theme-0.1.1.tgz
 ```
 
-重启 Tabby，在 **Settings → Liquid Glass Theme** 开启样式。插件默认关闭；保存窗口透明选项时，会同步设置 Tabby 的 Vibrancy。
+重启 Tabby，在 **Settings → Liquid Glass Theme** 开启样式。使用设置页的 **卸载插件** 按钮会先恢复启用前的窗口透明和终端渲染设置，再卸载插件。若通过 Tabby 插件管理器直接卸载后仍有配置残留，可在项目目录运行 `npm run cleanup` 清理，然后重启 Tabby；也可设置 `TABBY_CONFIG_PATH` 指向指定的 `config.yaml`。
 
 ## 设置
 
